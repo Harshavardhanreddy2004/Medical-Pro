@@ -61,6 +61,10 @@ export const QRGenerator: React.FC = () => {
       const url = await QRCode.toDataURL(payload, {
         width: 300,
         margin: 4,
+        color: {
+          dark: '#000000',
+          light: '#ffffff',
+        },
       });
 
       const link = document.createElement('a');
@@ -96,6 +100,10 @@ export const QRGenerator: React.FC = () => {
           const qrDataUrl = await QRCode.toDataURL(payload, {
             width: 150,
             margin: 4,
+            color: {
+              dark: '#000000',
+              light: '#ffffff',
+            },
           });
           return {
             qrDataUrl,
