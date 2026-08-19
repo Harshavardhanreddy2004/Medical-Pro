@@ -53,3 +53,25 @@
     at step (http://localhost:5173/node_modules/.vite/deps/html5-qrcode.js?v=bf124c35:25756:14)
     at Object.next (http://localhost:5173/node_modules/.vite/deps/html5-qrcode.js?v=bf124c35:25705:11)
     at http://localhost:5173/node_modules/.vite/deps/html5-qrcode.js?v=bf124c35:25683:65
+3:56:05 PM [vite] (client) [console.error] NotFoundException: No MultiFormat Readers were able to detect the code.
+    at MultiFormatReader.decodeInternal (http://localhost:5173/node_modules/.vite/deps/html5-qrcode.js?v=bf124c35:22602:11)
+    at MultiFormatReader.decode (http://localhost:5173/node_modules/.vite/deps/html5-qrcode.js?v=bf124c35:22541:17)
+    at ZXingHtml5QrcodeDecoder.decode (http://localhost:5173/node_modules/.vite/deps/html5-qrcode.js?v=bf124c35:25425:29)
+    at http://localhost:5173/node_modules/.vite/deps/html5-qrcode.js?v=bf124c35:25415:19
+    at new Promise (<anonymous>)
+    at ZXingHtml5QrcodeDecoder.decodeAsync (http://localhost:5173/node_modules/.vite/deps/html5-qrcode.js?v=bf124c35:25413:10)
+    at Html5QrcodeShim.<anonymous> (http://localhost:5173/node_modules/.vite/deps/html5-qrcode.js?v=bf124c35:25822:38)
+    at step (http://localhost:5173/node_modules/.vite/deps/html5-qrcode.js?v=bf124c35:25756:14)
+    at Object.next (http://localhost:5173/node_modules/.vite/deps/html5-qrcode.js?v=bf124c35:25705:11)
+    at http://localhost:5173/node_modules/.vite/deps/html5-qrcode.js?v=bf124c35:25683:65
+3:56:18 PM [vite] (client) [console.error] NotFoundException: No MultiFormat Readers were able to detect the code.
+    at MultiFormatReader.decodeInternal (http://localhost:5173/node_modules/.vite/deps/html5-qrcode.js?v=bf124c35:22602:11)
+    at MultiFormatReader.decode (http://localhost:5173/node_modules/.vite/deps/html5-qrcode.js?v=bf124c35:22541:17)
+    at ZXingHtml5QrcodeDecoder.decode (http://localhost:5173/node_modules/.vite/deps/html5-qrcode.js?v=bf124c35:25425:29)
+    at http://localhost:5173/node_modules/.vite/deps/html5-qrcode.js?v=bf124c35:25415:19
+    at new Promise (<anonymous>)
+    at ZXingHtml5QrcodeDecoder.decodeAsync (http://localhost:5173/node_modules/.vite/deps/html5-qrcode.js?v=bf124c35:25413:10)
+    at Html5QrcodeShim.<anonymous> (http://localhost:5173/node_modules/.vite/deps/html5-qrcode.js?v=bf124c35:25822:38)
+    at step (http://localhost:5173/node_modules/.vite/deps/html5-qrcode.js?v=bf124c35:25756:14)
+    at Object.next (http://localhost:5173/node_modules/.vite/deps/html5-qrcode.js?v=bf124c35:25705:11)
+    at http://localhost:5173/node_modules/.vite/deps/html5-qrcode.js?v=bf124c35:25683:65

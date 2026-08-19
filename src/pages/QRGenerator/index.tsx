@@ -49,15 +49,9 @@ export const QRGenerator: React.FC = () => {
 
   const totalPages = Math.ceil(filteredQRCodes.length / itemsPerPage);
 
-  // Generate QR payload string for a product
+  // Generate QR payload string for a product (keep it simple to maximize scan/decode reliability)
   const getQRPayload = (product: Product) => {
-    return JSON.stringify({
-      uuid: product.qr_uuid,
-      product_id: product.id,
-      sku: product.sku,
-      name: product.name,
-      batch: product.batch_number,
-    });
+    return product.qr_uuid;
   };
 
   // Helper: Download a single QR Code as PNG
@@ -66,7 +60,7 @@ export const QRGenerator: React.FC = () => {
       const payload = getQRPayload(product);
       const url = await QRCode.toDataURL(payload, {
         width: 300,
-        margin: 2,
+        margin: 4,
       });
 
       const link = document.createElement('a');
@@ -101,7 +95,7 @@ export const QRGenerator: React.FC = () => {
           const payload = getQRPayload(p);
           const qrDataUrl = await QRCode.toDataURL(payload, {
             width: 150,
-            margin: 1,
+            margin: 4,
           });
           return {
             qrDataUrl,
