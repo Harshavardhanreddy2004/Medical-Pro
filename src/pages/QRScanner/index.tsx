@@ -37,13 +37,23 @@ export const QRScanner: React.FC = () => {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const readerId = 'qr-reader';
 
+  // Helper to ensure single scanner instance
+  const getOrCreateScanner = () => {
+    if (scannerRef.current) {
+      return scannerRef.current;
+    }
+    const html5Qrcode = new Html5Qrcode(readerId);
+    scannerRef.current = html5Qrcode;
+    return html5Qrcode;
+  };
+
   // Handle scanned file upload
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     try {
-      const html5Qrcode = new Html5Qrcode(readerId);
+      const html5Qrcode = getOrCreateScanner();
       const decodedText = await html5Qrcode.scanFile(file, false);
       handleScanSuccess(decodedText);
     } catch (err: any) {
@@ -72,8 +82,7 @@ export const QRScanner: React.FC = () => {
     }
 
     try {
-      const html5Qrcode = new Html5Qrcode(readerId);
-      scannerRef.current = html5Qrcode;
+      const html5Qrcode = getOrCreateScanner();
 
       const devices = await Html5Qrcode.getCameras();
       if (devices && devices.length > 0) {
@@ -356,8 +365,8 @@ export const QRScanner: React.FC = () => {
                 </div>
               </div>
               
-              {/* Hidden target container for html5-qrcode scanFile requirements */}
-              <div id={readerId} className="hidden" />
+              {/* Hidden target container for html5-qrcode scanFile requirements (must be offscreen, not hidden/display-none, to maintain layout size) */}
+              <div id={readerId} className="absolute w-1 h-1 opacity-0 pointer-events-none -left-[9999px]" />
               
               <div className="h-10 mt-6" />
             </>
