@@ -13,6 +13,8 @@ import {
   Play,
   Square,
   AlertOctagon,
+  Upload,
+  Camera,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -29,10 +31,26 @@ export const QRScanner: React.FC = () => {
   const [quantity, setQuantity] = useState<number>(1);
   const [notes, setNotes] = useState<string>('');
   const [operator, setOperator] = useState<string>('Harsh Vardhan');
+  const [scanMethod, setScanMethod] = useState<'CAMERA' | 'FILE'>('CAMERA');
 
   // Scanner reference
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const readerId = 'qr-reader';
+
+  // Handle scanned file upload
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const html5Qrcode = new Html5Qrcode(readerId);
+      const decodedText = await html5Qrcode.scanFile(file, false);
+      handleScanSuccess(decodedText);
+    } catch (err: any) {
+      toast.error('Failed to decode QR code from image. Please ensure the QR is clear and visible.');
+      console.error(err);
+    }
+  };
 
   // Toggle scan mode (STOCK_IN vs STOCK_OUT) if not set by quick action
   const currentMode = scanMode || 'STOCK_IN';
@@ -234,56 +252,116 @@ export const QRScanner: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* Scanner Feed Panel */}
-        <div className="border border-gray-100 rounded-2xl p-6 bg-white shadow-sm flex flex-col items-center justify-center min-h-[420px] relative">
-          {/* Main scanner display wrapper */}
-          <div className="w-full max-w-sm aspect-square bg-gray-50 rounded-xl overflow-hidden border border-dashed border-gray-200 relative flex items-center justify-center">
-            {/* The actual element used by html5-qrcode (needs to be empty of React children) */}
-            <div id={readerId} className="absolute inset-0 w-full h-full" />
+        <div className="border border-gray-100 rounded-2xl p-6 bg-white shadow-sm flex flex-col items-center justify-between min-h-[440px] relative">
+          {/* Method selector tabs */}
+          <div className="flex border-b border-gray-100 w-full pb-3 mb-4 gap-4 text-xs font-semibold text-gray-500">
+            <button
+              onClick={() => setScanMethod('CAMERA')}
+              className={`pb-1.5 border-b-2 transition-all-300 flex items-center gap-1.5 ${
+                scanMethod === 'CAMERA'
+                  ? 'border-blue-600 text-blue-600 font-bold'
+                  : 'border-transparent hover:text-gray-800'
+              }`}
+            >
+              <Camera className="w-3.5 h-3.5" />
+              Scan with Camera
+            </button>
+            <button
+              onClick={() => {
+                stopScanner();
+                setScanMethod('FILE');
+              }}
+              className={`pb-1.5 border-b-2 transition-all-300 flex items-center gap-1.5 ${
+                scanMethod === 'FILE'
+                  ? 'border-blue-600 text-blue-600 font-bold'
+                  : 'border-transparent hover:text-gray-800'
+              }`}
+            >
+              <Upload className="w-3.5 h-3.5" />
+              Upload QR Image
+            </button>
+          </div>
 
-            {/* Offline placeholder */}
-            {!isScanning && !scannedProduct && (
-              <div className="flex flex-col items-center justify-center text-gray-400 gap-3 z-10 pointer-events-none">
-                <Scan className="w-12 h-12 text-gray-300 animate-pulse" />
-                <p className="text-xs font-medium">Scanner Offline</p>
+          {/* Tab Content */}
+          {scanMethod === 'CAMERA' ? (
+            <>
+              {/* Main scanner display wrapper */}
+              <div className="w-full max-w-sm aspect-square bg-gray-50 rounded-xl overflow-hidden border border-dashed border-gray-200 relative flex items-center justify-center">
+                {/* The actual element used by html5-qrcode (needs to be empty of React children) */}
+                <div id={readerId} className="absolute inset-0 w-full h-full" />
+
+                {/* Offline placeholder */}
+                {!isScanning && !scannedProduct && (
+                  <div className="flex flex-col items-center justify-center text-gray-400 gap-3 z-10 pointer-events-none">
+                    <Scan className="w-12 h-12 text-gray-300 animate-pulse" />
+                    <p className="text-xs font-medium">Scanner Offline</p>
+                  </div>
+                )}
+                
+                {/* Visual target reticle when scanning */}
+                {isScanning && (
+                  <div className="absolute inset-0 border-[35px] border-black/35 pointer-events-none z-10 flex items-center justify-center">
+                    <div className="w-48 h-48 border-2 border-blue-500 rounded relative">
+                      <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-blue-500 -mt-1 -ml-1" />
+                      <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-blue-500 -mt-1 -mr-1" />
+                      <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-blue-500 -mb-1 -ml-1" />
+                      <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-blue-500 -mb-1 -mr-1" />
+                      {/* Laser line animation */}
+                      <div className="w-full h-0.5 bg-blue-500 absolute top-1/2 left-0 animate-bounce" />
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-            
-            {/* Visual target reticle when scanning */}
-            {isScanning && (
-              <div className="absolute inset-0 border-[35px] border-black/35 pointer-events-none z-10 flex items-center justify-center">
-                <div className="w-48 h-48 border-2 border-blue-500 rounded relative">
-                  <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-blue-500 -mt-1 -ml-1" />
-                  <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-blue-500 -mt-1 -mr-1" />
-                  <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-blue-500 -mb-1 -ml-1" />
-                  <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-blue-500 -mb-1 -mr-1" />
-                  {/* Laser line animation */}
-                  <div className="w-full h-0.5 bg-blue-500 absolute top-1/2 left-0 animate-bounce" />
+
+              {/* Scanner Buttons */}
+              <div className="mt-6 flex items-center gap-3">
+                {!isScanning ? (
+                  <button
+                    onClick={startScanner}
+                    disabled={!!scannedProduct}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all-300 disabled:opacity-50"
+                  >
+                    <Play className="w-4 h-4" />
+                    Start Camera Scan
+                  </button>
+                ) : (
+                  <button
+                    onClick={stopScanner}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all-300"
+                  >
+                    <Square className="w-4 h-4" />
+                    Stop Camera Scan
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* File Uploader Container */}
+              <div className="w-full max-w-sm aspect-square bg-gray-50 rounded-xl border border-dashed border-gray-200 flex flex-col items-center justify-center p-6 relative hover:bg-gray-100/50 transition-all-300">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                />
+                <div className="flex flex-col items-center justify-center text-gray-400 gap-3 text-center pointer-events-none">
+                  <Upload className="w-12 h-12 text-gray-300" />
+                  <div>
+                    <p className="text-xs font-bold text-gray-700">Upload QR Image file</p>
+                    <p className="text-[10px] text-gray-400 mt-1 max-w-[200px]">
+                      Drag & drop your PNG/JPG image here, or click to browse local files.
+                    </p>
+                  </div>
                 </div>
               </div>
-            )}
-          </div>
-
-          {/* Scanner Buttons */}
-          <div className="mt-6 flex items-center gap-3">
-            {!isScanning ? (
-              <button
-                onClick={startScanner}
-                disabled={!!scannedProduct}
-                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all-300 disabled:opacity-50"
-              >
-                <Play className="w-4 h-4" />
-                Start Camera Scan
-              </button>
-            ) : (
-              <button
-                onClick={stopScanner}
-                className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all-300"
-              >
-                <Square className="w-4 h-4" />
-                Stop Camera Scan
-              </button>
-            )}
-          </div>
+              
+              {/* Hidden target container for html5-qrcode scanFile requirements */}
+              <div id={readerId} className="hidden" />
+              
+              <div className="h-10 mt-6" />
+            </>
+          )}
         </div>
 
         {/* Modal-like Transaction Confirmation Panel */}
