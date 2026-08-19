@@ -54,10 +54,10 @@ export const QRScanner: React.FC = () => {
 
     try {
       const html5Qrcode = getOrCreateScanner();
-      const decodedText = await html5Qrcode.scanFile(file, false);
+      const decodedText = await html5Qrcode.scanFile(file, true);
       handleScanSuccess(decodedText);
     } catch (err: any) {
-      toast.error('Failed to decode QR code from image. Please ensure the QR is clear and visible.');
+      toast.error(`Scan error: ${err.message || err || 'No QR code found in this image'}`);
       console.error(err);
     }
   };
@@ -346,29 +346,50 @@ export const QRScanner: React.FC = () => {
             </>
           ) : (
             <>
-              {/* File Uploader Container */}
-              <div className="w-full max-w-sm aspect-square bg-gray-50 rounded-xl border border-dashed border-gray-200 flex flex-col items-center justify-center p-6 relative hover:bg-gray-100/50 transition-all-300">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                />
-                <div className="flex flex-col items-center justify-center text-gray-400 gap-3 text-center pointer-events-none">
-                  <Upload className="w-12 h-12 text-gray-300" />
-                  <div>
-                    <p className="text-xs font-bold text-gray-700">Upload QR Image file</p>
-                    <p className="text-[10px] text-gray-400 mt-1 max-w-[200px]">
-                      Drag & drop your PNG/JPG image here, or click to browse local files.
-                    </p>
+              {/* File Uploader and Preview Container */}
+              <div className="w-full max-w-sm aspect-square bg-gray-50 rounded-xl border border-dashed border-gray-200 relative flex items-center justify-center overflow-hidden">
+                {/* The actual target element for html5-qrcode file render (visible and properly sized!) */}
+                <div id={readerId} className="w-full h-full flex items-center justify-center" />
+                
+                {/* File Dropzone Overlay (only visible before upload/scan success) */}
+                {!scannedProduct && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 gap-3 text-center p-6 bg-gray-50 hover:bg-gray-100/50 transition-all-300">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                    />
+                    <Upload className="w-12 h-12 text-gray-300 pointer-events-none" />
+                    <div className="pointer-events-none">
+                      <p className="text-xs font-bold text-gray-700">Upload QR Image file</p>
+                      <p className="text-[10px] text-gray-400 mt-1 max-w-[200px]">
+                        Drag & drop your PNG/JPG image here, or click to browse local files.
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
+
+              {/* Reset/Clear Button if scanned/uploaded */}
+              {scannedProduct && (
+                <div className="mt-6 flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      setScannedProduct(null);
+                      // Clear the reader div content
+                      const el = document.getElementById(readerId);
+                      if (el) el.innerHTML = '';
+                    }}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all-300"
+                  >
+                    <X className="w-4 h-4" />
+                    Clear Uploaded Image
+                  </button>
+                </div>
+              )}
               
-              {/* Hidden target container for html5-qrcode scanFile requirements (must be offscreen, not hidden/display-none, to maintain layout size) */}
-              <div id={readerId} className="absolute w-1 h-1 opacity-0 pointer-events-none -left-[9999px]" />
-              
-              <div className="h-10 mt-6" />
+              {!scannedProduct && <div className="h-10 mt-6" />}
             </>
           )}
         </div>
