@@ -265,7 +265,14 @@ export const QRScanner: React.FC = () => {
           {/* Method selector tabs */}
           <div className="flex border-b border-gray-100 w-full pb-3 mb-4 gap-4 text-xs font-semibold text-gray-500">
             <button
-              onClick={() => setScanMethod('CAMERA')}
+              onClick={() => {
+                if (scanMethod !== 'CAMERA') {
+                  setScannedProduct(null);
+                  const el = document.getElementById(readerId);
+                  if (el) el.innerHTML = '';
+                  setScanMethod('CAMERA');
+                }
+              }}
               className={`pb-1.5 border-b-2 transition-all-300 flex items-center gap-1.5 ${
                 scanMethod === 'CAMERA'
                   ? 'border-blue-600 text-blue-600 font-bold'
@@ -277,8 +284,13 @@ export const QRScanner: React.FC = () => {
             </button>
             <button
               onClick={() => {
-                stopScanner();
-                setScanMethod('FILE');
+                if (scanMethod !== 'FILE') {
+                  stopScanner();
+                  setScannedProduct(null);
+                  const el = document.getElementById(readerId);
+                  if (el) el.innerHTML = '';
+                  setScanMethod('FILE');
+                }
               }}
               className={`pb-1.5 border-b-2 transition-all-300 flex items-center gap-1.5 ${
                 scanMethod === 'FILE'
@@ -291,39 +303,57 @@ export const QRScanner: React.FC = () => {
             </button>
           </div>
 
-          {/* Tab Content */}
-          {scanMethod === 'CAMERA' ? (
-            <>
-              {/* Main scanner display wrapper */}
-              <div className="w-full max-w-sm aspect-square bg-gray-50 rounded-xl overflow-hidden border border-dashed border-gray-200 relative flex items-center justify-center">
-                {/* The actual element used by html5-qrcode (needs to be empty of React children) */}
-                <div id={readerId} className="absolute inset-0 w-full h-full" />
+          {/* MAIN STABLE CONTAINER FOR BOTH CAMERA FEED AND FILE UPLOAD IMAGES */}
+          <div className="w-full max-w-sm aspect-square bg-gray-50 rounded-xl overflow-hidden border border-dashed border-gray-200 relative flex items-center justify-center">
+            {/* The single stable DOM node used by html5-qrcode. Never unmounts! */}
+            <div id={readerId} className="w-full h-full flex items-center justify-center" />
 
-                {/* Offline placeholder */}
-                {!isScanning && !scannedProduct && (
-                  <div className="flex flex-col items-center justify-center text-gray-400 gap-3 z-10 pointer-events-none">
-                    <Scan className="w-12 h-12 text-gray-300 animate-pulse" />
-                    <p className="text-xs font-medium">Scanner Offline</p>
-                  </div>
-                )}
-                
-                {/* Visual target reticle when scanning */}
-                {isScanning && (
-                  <div className="absolute inset-0 border-[35px] border-black/35 pointer-events-none z-10 flex items-center justify-center">
-                    <div className="w-48 h-48 border-2 border-blue-500 rounded relative">
-                      <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-blue-500 -mt-1 -ml-1" />
-                      <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-blue-500 -mt-1 -mr-1" />
-                      <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-blue-500 -mb-1 -ml-1" />
-                      <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-blue-500 -mb-1 -mr-1" />
-                      {/* Laser line animation */}
-                      <div className="w-full h-0.5 bg-blue-500 absolute top-1/2 left-0 animate-bounce" />
-                    </div>
-                  </div>
-                )}
+            {/* OVERLAY 1: CAMERA - Offline placeholder */}
+            {scanMethod === 'CAMERA' && !isScanning && !scannedProduct && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 gap-3 z-10 pointer-events-none bg-gray-50">
+                <Scan className="w-12 h-12 text-gray-300 animate-pulse" />
+                <p className="text-xs font-medium">Scanner Offline</p>
               </div>
+            )}
+            
+            {/* OVERLAY 2: CAMERA - Visual target reticle when scanning */}
+            {scanMethod === 'CAMERA' && isScanning && (
+              <div className="absolute inset-0 border-[35px] border-black/35 pointer-events-none z-10 flex items-center justify-center">
+                <div className="w-48 h-48 border-2 border-blue-500 rounded relative">
+                  <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-blue-500 -mt-1 -ml-1" />
+                  <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-blue-500 -mt-1 -mr-1" />
+                  <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-blue-500 -mb-1 -ml-1" />
+                  <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-blue-500 -mb-1 -mr-1" />
+                  {/* Laser line animation */}
+                  <div className="w-full h-0.5 bg-blue-500 absolute top-1/2 left-0 animate-bounce" />
+                </div>
+              </div>
+            )}
 
-              {/* Scanner Buttons */}
-              <div className="mt-6 flex items-center gap-3">
+            {/* OVERLAY 3: FILE - Drag & Drop overlay (only visible before file scan) */}
+            {scanMethod === 'FILE' && !scannedProduct && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 gap-3 text-center p-6 bg-gray-50 hover:bg-gray-100/50 transition-all-300 z-10">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                />
+                <Upload className="w-12 h-12 text-gray-300 pointer-events-none" />
+                <div className="pointer-events-none">
+                  <p className="text-xs font-bold text-gray-700">Upload QR Image file</p>
+                  <p className="text-[10px] text-gray-400 mt-1 max-w-[200px]">
+                    Drag & drop your PNG/JPG image here, or click to browse local files.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons below container */}
+          <div className="mt-6 flex items-center gap-3">
+            {scanMethod === 'CAMERA' ? (
+              <>
                 {!isScanning ? (
                   <button
                     onClick={startScanner}
@@ -342,38 +372,10 @@ export const QRScanner: React.FC = () => {
                     Stop Camera Scan
                   </button>
                 )}
-              </div>
-            </>
-          ) : (
-            <>
-              {/* File Uploader and Preview Container */}
-              <div className="w-full max-w-sm aspect-square bg-gray-50 rounded-xl border border-dashed border-gray-200 relative flex items-center justify-center overflow-hidden">
-                {/* The actual target element for html5-qrcode file render (visible and properly sized!) */}
-                <div id={readerId} className="w-full h-full flex items-center justify-center" />
-                
-                {/* File Dropzone Overlay (only visible before upload/scan success) */}
-                {!scannedProduct && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 gap-3 text-center p-6 bg-gray-50 hover:bg-gray-100/50 transition-all-300">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleFileUpload}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                    />
-                    <Upload className="w-12 h-12 text-gray-300 pointer-events-none" />
-                    <div className="pointer-events-none">
-                      <p className="text-xs font-bold text-gray-700">Upload QR Image file</p>
-                      <p className="text-[10px] text-gray-400 mt-1 max-w-[200px]">
-                        Drag & drop your PNG/JPG image here, or click to browse local files.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Reset/Clear Button if scanned/uploaded */}
-              {scannedProduct && (
-                <div className="mt-6 flex items-center gap-3">
+              </>
+            ) : (
+              <>
+                {scannedProduct && (
                   <button
                     onClick={() => {
                       setScannedProduct(null);
@@ -386,12 +388,10 @@ export const QRScanner: React.FC = () => {
                     <X className="w-4 h-4" />
                     Clear Uploaded Image
                   </button>
-                </div>
-              )}
-              
-              {!scannedProduct && <div className="h-10 mt-6" />}
-            </>
-          )}
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         {/* Modal-like Transaction Confirmation Panel */}
