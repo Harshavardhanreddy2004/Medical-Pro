@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import { useProducts, useInventory, useCreateTransaction } from '../../hooks/useInventoryData';
 import { Html5Qrcode } from 'html5-qrcode';
+import jsQR from 'jsqr';
 import {
   Scan,
   ToggleLeft,
@@ -32,6 +33,7 @@ export const QRScanner: React.FC = () => {
   const [notes, setNotes] = useState<string>('');
   const [operator, setOperator] = useState<string>('Harsh Vardhan');
   const [scanMethod, setScanMethod] = useState<'CAMERA' | 'FILE'>('CAMERA');
+  const [uploadedImageSrc, setUploadedImageSrc] = useState<string | null>(null);
 
   // Scanner reference
   const scannerRef = useRef<Html5Qrcode | null>(null);
@@ -47,19 +49,62 @@ export const QRScanner: React.FC = () => {
     return html5Qrcode;
   };
 
-  // Handle scanned file upload
+  // Handle scanned file upload using pure jsQR decoding
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    try {
-      const html5Qrcode = getOrCreateScanner();
-      const decodedText = await html5Qrcode.scanFile(file, true);
-      handleScanSuccess(decodedText);
-    } catch (err: any) {
-      toast.error(`Scan error: ${err.message || err || 'No QR code found in this image'}`);
-      console.error(err);
-    }
+    const loadingToast = toast.loading('Reading image file...');
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      setUploadedImageSrc(dataUrl);
+
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          if (!context) {
+            toast.dismiss(loadingToast);
+            toast.error('Browser error: Could not compile 2D canvas context');
+            return;
+          }
+
+          canvas.width = img.width;
+          canvas.height = img.height;
+          context.drawImage(img, 0, 0, img.width, img.height);
+
+          const imageData = context.getImageData(0, 0, img.width, img.height);
+          const code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: 'dontInvert',
+          });
+
+          toast.dismiss(loadingToast);
+
+          if (code) {
+            handleScanSuccess(code.data);
+          } else {
+            toast.error('No QR code detected in this image. Please ensure the QR is clear and well-lit.');
+          }
+        } catch (err: any) {
+          toast.dismiss(loadingToast);
+          toast.error(`Decoding failed: ${err.message || err}`);
+          console.error(err);
+        }
+      };
+      img.onerror = () => {
+        toast.dismiss(loadingToast);
+        toast.error('Failed to load image file.');
+      };
+      img.src = dataUrl;
+    };
+    reader.onerror = () => {
+      toast.dismiss(loadingToast);
+      toast.error('Failed to read upload file.');
+    };
+    reader.readAsDataURL(file);
   };
 
   // Toggle scan mode (STOCK_IN vs STOCK_OUT) if not set by quick action
@@ -211,6 +256,7 @@ export const QRScanner: React.FC = () => {
       {
         onSuccess: () => {
           setScannedProduct(null);
+          setUploadedImageSrc(null);
           // Restart scanner automatically for subsequent scans
           startScanner();
         },
@@ -268,6 +314,7 @@ export const QRScanner: React.FC = () => {
               onClick={() => {
                 if (scanMethod !== 'CAMERA') {
                   setScannedProduct(null);
+                  setUploadedImageSrc(null);
                   const el = document.getElementById(readerId);
                   if (el) el.innerHTML = '';
                   setScanMethod('CAMERA');
@@ -287,6 +334,7 @@ export const QRScanner: React.FC = () => {
                 if (scanMethod !== 'FILE') {
                   stopScanner();
                   setScannedProduct(null);
+                  setUploadedImageSrc(null);
                   const el = document.getElementById(readerId);
                   if (el) el.innerHTML = '';
                   setScanMethod('FILE');
@@ -304,9 +352,16 @@ export const QRScanner: React.FC = () => {
           </div>
 
           {/* MAIN STABLE CONTAINER FOR BOTH CAMERA FEED AND FILE UPLOAD IMAGES */}
-          <div className="w-full max-w-sm aspect-square bg-gray-50 rounded-xl overflow-hidden border border-dashed border-gray-200 relative flex items-center justify-center">
-            {/* The single stable DOM node used by html5-qrcode. Never unmounts! */}
-            <div id={readerId} className="w-full h-full flex items-center justify-center" />
+          <div className="w-full max-w-sm aspect-square bg-gray-50 rounded-xl overflow-hidden border border-dashed border-gray-200 relative flex items-center justify-center bg-white">
+            {/* The single stable DOM node used by html5-qrcode. Hidden when using file scan */}
+            <div id={readerId} className={`w-full h-full flex items-center justify-center ${scanMethod === 'FILE' ? 'hidden' : ''}`} />
+
+            {/* PREVIEW: FILE UPLOADER - Uploaded image preview */}
+            {scanMethod === 'FILE' && uploadedImageSrc && (
+              <div className="absolute inset-0 bg-white flex items-center justify-center z-10 p-2">
+                <img src={uploadedImageSrc} className="w-full h-full object-contain rounded-lg border border-gray-100" alt="Uploaded QR Code" />
+              </div>
+            )}
 
             {/* OVERLAY 1: CAMERA - Offline placeholder */}
             {scanMethod === 'CAMERA' && !isScanning && !scannedProduct && (
@@ -331,7 +386,7 @@ export const QRScanner: React.FC = () => {
             )}
 
             {/* OVERLAY 3: FILE - Drag & Drop overlay (only visible before file scan) */}
-            {scanMethod === 'FILE' && !scannedProduct && (
+            {scanMethod === 'FILE' && !uploadedImageSrc && (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 gap-3 text-center p-6 bg-gray-50 hover:bg-gray-100/50 transition-all-300 z-10">
                 <input
                   type="file"
@@ -375,13 +430,11 @@ export const QRScanner: React.FC = () => {
               </>
             ) : (
               <>
-                {scannedProduct && (
+                {uploadedImageSrc && (
                   <button
                     onClick={() => {
                       setScannedProduct(null);
-                      // Clear the reader div content
-                      const el = document.getElementById(readerId);
-                      if (el) el.innerHTML = '';
+                      setUploadedImageSrc(null);
                     }}
                     className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all-300"
                   >
@@ -492,6 +545,7 @@ export const QRScanner: React.FC = () => {
                 <button
                   onClick={() => {
                     setScannedProduct(null);
+                    setUploadedImageSrc(null);
                     startScanner();
                   }}
                   className="flex-1 py-2.5 border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl font-semibold transition-all-300"
